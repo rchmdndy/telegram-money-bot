@@ -39,9 +39,14 @@ func (db *DB) EnsureUser(ctx context.Context, userID int64) (bool, error) {
 	if err != nil {
 		return false, wrapErr(err)
 	}
-	if n, err := res.RowsAffected(); err == nil && n > 0 {
-		created = true
+	// created decides whether the seeding below runs, so a driver that cannot
+	// report it must abort rather than commit a user with no categories, no
+	// settings and no period.
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("periksa user baru: %w", err)
 	}
+	created = n > 0
 
 	if created {
 		if err := seedUser(ctx, tx, userID); err != nil {
