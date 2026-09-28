@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/rchmdndy/telegram-money-bot/internal/persona"
 	"github.com/go-telegram/bot/models"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
 )
 
 // textUpdate builds the minimal update shape the Telegram library hands to a
