@@ -9,11 +9,11 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/dandy/telegram_money_bot/internal/csv"
-	"github.com/dandy/telegram_money_bot/internal/period"
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/report"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/csv"
+	"github.com/rchmdndy/telegram-money-bot/internal/period"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/report"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // maxCategoryName is the category name limit of PRD §4.4.

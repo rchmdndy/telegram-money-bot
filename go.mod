@@ -1,4 +1,4 @@
-module github.com/dandy/telegram_money_bot
+module github.com/rchmdndy/telegram-money-bot
 
 go 1.26.6
 

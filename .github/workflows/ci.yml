@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same ref cancels the previous run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: vet + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          # Reads the version from go.mod, so the toolchain is never duplicated.
+          go-version-file: go.mod
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::file berikut belum gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: coverage ringkasan
+        run: go tool cover -func=coverage.out | tail -1
+
+      - name: simpan laporan coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          if-no-files-found: error
+
+  docker:
+    name: docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Build only — publishing happens in cd.yml. This job proves the image
+      # still builds on every change.
+      - name: build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: telegram-money-bot:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: smoke run tanpa token
+        run: |
+          set +e
+          out=$(docker run --rm telegram-money-bot:ci 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 1 ]; then
+            echo "::error::harus keluar dengan kode 1 tanpa token, dapat $code"
+            exit 1
+          fi
+          echo "$out" | grep -q 'TELEGRAM_BOT_TOKEN' || {
+            echo "::error::pesan konfigurasi tidak muncul"
+            exit 1
+          }

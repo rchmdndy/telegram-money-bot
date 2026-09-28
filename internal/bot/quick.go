@@ -5,10 +5,10 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dandy/telegram_money_bot/internal/money"
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/quick"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/money"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/quick"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // quickInput parses a free-text quick input, matches the category and shows the

@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dandy/telegram_money_bot/internal/money"
-	"github.com/dandy/telegram_money_bot/internal/period"
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/report"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/money"
+	"github.com/rchmdndy/telegram-money-bot/internal/period"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/report"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // testClock is the frozen "now" of every bot test: Sunday, 27 Sep 2026, 10:00

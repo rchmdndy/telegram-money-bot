@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dandy/telegram_money_bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
 )
 
 // seedExpenseCategories are created for every new user (PRD §4.4).

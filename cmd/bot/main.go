@@ -16,10 +16,10 @@ import (
 
 	telegram "github.com/go-telegram/bot"
 
-	"github.com/dandy/telegram_money_bot/internal/bot"
-	"github.com/dandy/telegram_money_bot/internal/config"
-	"github.com/dandy/telegram_money_bot/internal/scheduler"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/bot"
+	"github.com/rchmdndy/telegram-money-bot/internal/config"
+	"github.com/rchmdndy/telegram-money-bot/internal/scheduler"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 func main() {

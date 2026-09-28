@@ -1,0 +1,12 @@
+# Build context hygiene: keep the image build fast and reproducible.
+.git
+.gitignore
+.github
+moneybot
+*.db
+*.db-shm
+*.db-wal
+.env
+Dockerfile
+.dockerignore
+README.md

@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dandy/telegram_money_bot/internal/period"
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/period"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 func TestStartSendsWelcome(t *testing.T) {

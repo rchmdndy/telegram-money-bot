@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // testClock is 10:00 WIB on 27 Sep 2026; a reminder set to 09:00 is due, one at

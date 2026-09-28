@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/quick"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/quick"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // Handler runs the conversation state machine, the commands and the callbacks

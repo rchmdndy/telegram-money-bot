@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dandy/telegram_money_bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
 	"github.com/go-telegram/bot/models"
 )
 

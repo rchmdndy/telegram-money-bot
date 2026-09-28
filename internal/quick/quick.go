@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/dandy/telegram_money_bot/internal/money"
+	"github.com/rchmdndy/telegram-money-bot/internal/money"
 )
 
 const (

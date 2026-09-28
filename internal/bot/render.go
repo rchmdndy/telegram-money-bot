@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // mainReplyKeyboard is the persistent reply keyboard of PRD §4.2. Its two

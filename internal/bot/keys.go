@@ -1,6 +1,6 @@
 package bot
 
-import "github.com/dandy/telegram_money_bot/internal/persona"
+import "github.com/rchmdndy/telegram-money-bot/internal/persona"
 
 // Callback data carried by every inline button. Telegram only guarantees
 // 64 bytes, so the payload stays short: a prefix plus an ID.

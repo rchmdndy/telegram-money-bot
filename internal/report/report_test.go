@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dandy/telegram_money_bot/internal/period"
-	"github.com/dandy/telegram_money_bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/period"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
 )
 
 // sampleRows is the PRD §8 sample data (11 expense transactions in the

@@ -9,7 +9,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // DefaultInterval is how often the scheduler looks for due reminders

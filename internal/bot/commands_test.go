@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dandy/telegram_money_bot/internal/money"
-	"github.com/dandy/telegram_money_bot/internal/period"
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/report"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/money"
+	"github.com/rchmdndy/telegram-money-bot/internal/period"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/report"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // rekapFor renders the /rekap reply the handler must produce for a range.

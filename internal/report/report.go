@@ -13,9 +13,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/dandy/telegram_money_bot/internal/money"
-	"github.com/dandy/telegram_money_bot/internal/period"
-	"github.com/dandy/telegram_money_bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/money"
+	"github.com/rchmdndy/telegram-money-bot/internal/period"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
 )
 
 // Transaction kinds. They mirror storage.Kind but are declared here so the

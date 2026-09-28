@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"github.com/dandy/telegram_money_bot/internal/money"
-	"github.com/dandy/telegram_money_bot/internal/period"
-	"github.com/dandy/telegram_money_bot/internal/persona"
-	"github.com/dandy/telegram_money_bot/internal/report"
-	"github.com/dandy/telegram_money_bot/internal/storage"
+	"github.com/rchmdndy/telegram-money-bot/internal/money"
+	"github.com/rchmdndy/telegram-money-bot/internal/period"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/report"
+	"github.com/rchmdndy/telegram-money-bot/internal/storage"
 )
 
 // startAdd opens the add flow at its first step, the date (PRD §4.2).

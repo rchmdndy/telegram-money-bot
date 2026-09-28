@@ -3,7 +3,7 @@ package report
 import (
 	"strings"
 
-	"github.com/dandy/telegram_money_bot/internal/persona"
+	"github.com/rchmdndy/telegram-money-bot/internal/persona"
 )
 
 // cardLabelWidth puts the colon of every card line in the same column, which
