@@ -17,6 +17,10 @@ ARG TARGETOS=linux
 ARG TARGETARCH
 # Only the compiler cache is mounted. Mounting /go/pkg/mod here would shadow
 # the modules installed by the layer above and force a re-download.
+#
+# The mount is not exported by type=gha/type=local, so CI still compiles from
+# scratch; it only speeds up repeated builds on one machine. The layer cache
+# (`RUN go mod download` above) is what keeps CI warm.
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags='-s -w' -o /out/moneybot ./cmd/bot
