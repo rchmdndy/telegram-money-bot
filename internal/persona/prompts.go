@@ -77,6 +77,16 @@ func HasPrompt(key string) bool {
 }
 
 // Prompt renders the prompt key in persona id. Same contract as Render.
+//
+// The prompts table is consulted first; a key it does not define falls back to
+// the catalog. The fallback is required because the PRD §4.12 ownership table
+// pins three prompts (tx.prompt.date, tx.prompt.amount, tx.prompt.note) to the
+// catalog, and h.ask renders every prompt through this function. Without it
+// those three render as "" and Telegram rejects the message with
+// "Bad Request: message text is empty".
 func Prompt(id ID, key string, vars map[string]string) string {
-	return render(prompts, id, key, vars)
+	if HasPrompt(key) {
+		return render(prompts, id, key, vars)
+	}
+	return Render(id, key, vars)
 }

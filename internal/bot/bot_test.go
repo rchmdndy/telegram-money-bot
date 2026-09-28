@@ -40,13 +40,20 @@ type sentDocument struct {
 // mockSender records everything the handler sends (PRD §6: no test may touch
 // the Telegram API).
 type mockSender struct {
+	t         *testing.T
 	messages  []sentMessage
 	documents []sentDocument
 	answered  []string
 	edited    []int
 }
 
+// SendMessage fails the test on empty text. Telegram rejects such a message
+// with "Bad Request: message text is empty", so a flow that renders an unknown
+// persona key would otherwise pass here and die in production.
 func (m *mockSender) SendMessage(_ context.Context, chatID int64, text string, k Keyboard) (int, error) {
+	if strings.TrimSpace(text) == "" {
+		m.t.Errorf("SendMessage: teks kosong (chat %d, keyboard %+v)", chatID, k)
+	}
 	m.messages = append(m.messages, sentMessage{chatID: chatID, text: text, key: k})
 	return len(m.messages), nil
 }
@@ -92,7 +99,7 @@ func newTestHandler(t *testing.T) (*Handler, *mockSender, *storage.DB, context.C
 	}
 	t.Cleanup(func() { db.Close() })
 
-	sender := &mockSender{}
+	sender := &mockSender{t: t}
 	h := New(db, sender, time.UTC, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	h.SetClock(func() time.Time { return testClock })
 	return h, sender, db, ctx
@@ -905,5 +912,143 @@ func TestSendReminderSummarisesTheDay(t *testing.T) {
 	}
 	if !strings.Contains(got, "Makan "+money.Format(32000)) {
 		t.Fatalf("reminder tidak memuat rincian kategori: %q", got)
+	}
+}
+
+// TestAddFlowWorksForEveryPersona walks the whole add flow for both kinds, once
+// per persona.
+//
+// The m00864 outage: Prompt() read only the prompts table while
+// tx.prompt.date/amount/note live in the catalog table, so every persona
+// rendered an empty message and Telegram answered `Bad Request: message text is
+// empty`. Neither expense nor income could be recorded. This test pins the
+// end-to-end path: four messages per flow, none empty, no leaked template
+// token, a date prompt that really differs per persona, and a row that lands in
+// the database with the right kind and category.
+func TestAddFlowWorksForEveryPersona(t *testing.T) {
+	type flow struct {
+		name     string
+		button   string
+		kind     storage.Kind
+		category string
+	}
+	flows := []flow{
+		{"pengeluaran", persona.BtnExpense, storage.KindExpense, "Makan"},
+		{"pemasukan", persona.BtnIncome, storage.KindIncome, "Gaji"},
+	}
+
+	datePrompts := map[persona.ID]string{}
+	for _, id := range persona.IDs() {
+		for _, f := range flows {
+			t.Run(string(id)+"/"+f.name, func(t *testing.T) {
+				h, sender, db, ctx := newTestHandler(t)
+				// The user row must exist before SetPersona can update it.
+				if _, err := db.EnsureUser(ctx, 1); err != nil {
+					t.Fatalf("EnsureUser: %v", err)
+				}
+				if err := db.SetPersona(ctx, 1, string(id)); err != nil {
+					t.Fatalf("SetPersona(%q): %v", id, err)
+				}
+
+				mustSend(t, h, ctx, 1, f.button)
+				mustCallback(t, h, ctx, 1, cbDateToday)
+				mustCallback(t, h, ctx, 1, cbCatPickPrefix+itoa(catID(t, h.db, ctx, 1, f.kind, f.category)))
+				mustSend(t, h, ctx, 1, "17000")
+
+				if len(sender.messages) != 4 {
+					t.Fatalf("alur add mengirim %d pesan, want 4", len(sender.messages))
+				}
+				for i, m := range sender.messages {
+					if strings.TrimSpace(m.text) == "" {
+						t.Fatalf("pesan %d kosong (persona %q)", i, id)
+					}
+					if strings.ContainsAny(m.text, "{}") {
+						t.Fatalf("pesan %d masih memuat token: %q", i, m.text)
+					}
+				}
+
+				if got, want := sender.messages[0].text, persona.Prompt(id, "tx.prompt.date", map[string]string{"valid": persona.LabelDateFormats}); got != want {
+					t.Fatalf("tx.prompt.date = %q, want %q", got, want)
+				}
+				if got, want := sender.messages[1].text, persona.Render(id, "category.list", nil); got != want {
+					t.Fatalf("category.list = %q, want %q", got, want)
+				}
+				if got, want := sender.messages[2].text, persona.Prompt(id, "tx.prompt.amount", nil); got != want {
+					t.Fatalf("tx.prompt.amount = %q, want %q", got, want)
+				}
+				wantCard := report.RenderCard(report.Card{
+					Header:   persona.Render(id, "tx.confirm.header", map[string]string{"kind": kindWord(string(f.kind))}),
+					Date:     period.FormatDayDate(testToday),
+					Category: f.category,
+					Amount:   money.Format(17000),
+					Note:     persona.LabelNoNote,
+				})
+				if got := sender.messages[3].text; got != wantCard {
+					t.Fatalf("kartu konfirmasi =\n%s\nwant\n%s", got, wantCard)
+				}
+				datePrompts[id] = sender.messages[0].text
+
+				mustCallback(t, h, ctx, 1, cbSave)
+				if got, want := sender.last(t), persona.Render(id, "tx.saved", map[string]string{
+					"category": f.category,
+					"amount":   money.Format(17000),
+				}); got != want {
+					t.Fatalf("tx.saved = %q, want %q", got, want)
+				}
+				rows, err := h.db.ListRecentTransactions(ctx, 1, 5)
+				if err != nil {
+					t.Fatalf("ListRecentTransactions: %v", err)
+				}
+				if len(rows) != 1 || rows[0].Amount != 17000 || rows[0].Kind != f.kind || rows[0].CategoryName != f.category {
+					t.Fatalf("baris = %+v", rows)
+				}
+			})
+		}
+	}
+
+	// The date prompt must differ per persona: identical texts would mean the
+	// persona never reached the wire.
+	seen := map[string]persona.ID{}
+	for _, id := range persona.IDs() {
+		text := datePrompts[id]
+		if other, dup := seen[text]; dup {
+			t.Fatalf("persona %q dan %q mengirim prompt tanggal yang sama: %q", id, other, text)
+		}
+		seen[text] = id
+	}
+}
+
+// Renaming a seed category must not bring the old name back. Every message
+// re-runs EnsureUser, whose seeding used to re-insert the seed names with
+// INSERT OR IGNORE; rename frees the name, so the next message inserted a
+// phantom second category and /kategori listed both (the m01386 report).
+func TestRenamedSeedCategoryDoesNotComeBack(t *testing.T) {
+	h, sender, db, ctx := newTestHandler(t)
+	mustSend(t, h, ctx, 1, "/kategori")
+	makan := catID(t, db, ctx, 1, storage.KindExpense, "Makan")
+
+	mustCallback(t, h, ctx, 1, cbCatMenuRename)
+	mustCallback(t, h, ctx, 1, cbCatRenamePrefix+itoa(makan))
+	mustSend(t, h, ctx, 1, "Makan Besar")
+	if got, want := sender.last(t), say("category.renamed", map[string]string{"category": "Makan Besar"}); got != want {
+		t.Fatalf("ganti nama = %q, want %q", got, want)
+	}
+
+	// Any later message runs EnsureUser again; the list must be unchanged.
+	mustSend(t, h, ctx, 1, "/help")
+	sender.reset()
+	mustSend(t, h, ctx, 1, "/kategori")
+
+	want := say("category.list", nil) +
+		"\n" + persona.LabelItemPrefix + "Makan Besar" +
+		"\n" + persona.LabelItemPrefix + "Transport" +
+		"\n" + persona.LabelItemPrefix + "Rumah Tangga" +
+		"\n" + persona.LabelItemPrefix + "Kesehatan" +
+		"\n" + persona.LabelItemPrefix + "Hiburan" +
+		"\n" + persona.LabelItemPrefix + "Lainnya" +
+		"\n" + persona.LabelItemPrefix + "Gaji" +
+		"\n" + persona.LabelItemPrefix + "Lain-lain"
+	if got := sender.last(t); got != want {
+		t.Fatalf("/kategori =\n%s\nwant\n%s", got, want)
 	}
 }

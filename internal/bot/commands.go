@@ -396,8 +396,15 @@ func (h *Handler) sendPeriodList(ctx context.Context, chatID, userID int64, p pe
 			b.WriteString("\n")
 		}
 		b.WriteString(persona.LabelItemPrefix + rec.Name + " " +
-			strconv.Itoa(rec.StartDay) + persona.LabelDayRange + strconv.Itoa(rec.EndDay) + " " +
-			persona.LabelEffectiveFrom + " " + rec.EffectiveFrom)
+			strconv.Itoa(rec.StartDay) + persona.LabelDayRange + strconv.Itoa(rec.EndDay) + " ")
+		// The initial period carries the seedPeriodEffectiveFrom sentinel
+		// rather than a schedule-change date, so rendering it verbatim would
+		// show the user `mulai 1970-01-01`.
+		if rec.IsSeed() {
+			b.WriteString(persona.LabelEffectiveFromStart)
+			continue
+		}
+		b.WriteString(persona.LabelEffectiveFrom + " " + rec.EffectiveFrom)
 	}
 	return h.send(ctx, chatID, b.String(), mainReplyKeyboard())
 }

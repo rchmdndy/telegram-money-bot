@@ -334,3 +334,222 @@ func TestPersonaIDsMatchDatabaseCheck(t *testing.T) {
 		}
 	}
 }
+
+// promptsTableKeys is every key the prompts table itself must define.
+var promptsTableKeys = []string{
+	"prompt.cat_kind",
+	"prompt.cat_name",
+	"prompt.cat_off_pick",
+	"prompt.cat_rename_name",
+	"prompt.cat_rename_pick",
+	"prompt.period_start_day",
+	"prompt.persona",
+	"prompt.reminder_time",
+}
+
+// promptKeys is every key h.ask passes to Prompt: the prompts-table keys plus
+// the three tx.prompt.* keys the PRD §4.12 ownership table pins to the catalog.
+var promptKeys = append(append([]string{}, promptsTableKeys...),
+	"tx.prompt.amount",
+	"tx.prompt.date",
+	"tx.prompt.note",
+)
+
+// validationKeys is every key the state machine (PRD §4.11) and the field
+// validations (PRD §4.2, §4.4, §4.5, §4.8, §4.13.4) pass to Validation.
+var validationKeys = []string{
+	"val.amount",
+	"val.cat_dup",
+	"val.cat_empty",
+	"val.cat_max",
+	"val.cat_name",
+	"val.date",
+	"val.no_conv",
+	"val.note",
+	"val.persona",
+	"val.range",
+	"val.start_day",
+	"val.time",
+	"val.tx_missing",
+}
+
+// assertTableComplete checks one persona table is exactly as wide as the keys
+// the handlers use: every persona defines every key, non-empty, and no persona
+// carries a key no handler renders. A key present in Netral but missing from
+// one persona is the empty-message failure class, since render falls back per
+// table, never per key.
+func assertTableComplete(t *testing.T, name string, table map[ID]map[string]string, keys []string) {
+	t.Helper()
+	want := map[string]bool{}
+	for _, k := range keys {
+		want[k] = true
+	}
+	for _, id := range IDs() {
+		texts, ok := table[id]
+		if !ok {
+			t.Errorf("%s has no entry for persona %q", name, id)
+			continue
+		}
+		for _, key := range keys {
+			v, ok := texts[key]
+			if !ok {
+				t.Errorf("%s persona %q missing key %q", name, id, key)
+				continue
+			}
+			if strings.TrimSpace(v) == "" {
+				t.Errorf("%s persona %q key %q is empty", name, id, key)
+			}
+		}
+		for key := range texts {
+			if !want[key] {
+				t.Errorf("%s persona %q defines undeclared key %q", name, id, key)
+			}
+		}
+	}
+}
+
+// TestPromptsTableIsComplete covers the table whose incompleteness shipped as
+// a production outage: every persona must define every prompt the handlers
+// send, or the bot calls Telegram with an empty message text.
+func TestPromptsTableIsComplete(t *testing.T) {
+	assertTableComplete(t, "prompts", prompts, promptsTableKeys)
+}
+
+// TestValidationTableIsComplete is the same guard for the rejection messages.
+func TestValidationTableIsComplete(t *testing.T) {
+	assertTableComplete(t, "validation", validation, validationKeys)
+}
+
+// TestPromptKeysMatchTable keeps PromptKeys() and HasPrompt() in step with the
+// keys the handlers actually use.
+func TestPromptKeysMatchTable(t *testing.T) {
+	got := PromptKeys()
+	if len(got) != len(promptsTableKeys) {
+		t.Fatalf("PromptKeys() returned %d keys, want %d: %v", len(got), len(promptsTableKeys), got)
+	}
+	for i := 1; i < len(got); i++ {
+		if got[i-1] >= got[i] {
+			t.Fatalf("PromptKeys() not sorted at %d: %q >= %q", i, got[i-1], got[i])
+		}
+	}
+	for _, k := range promptsTableKeys {
+		if !HasPrompt(k) {
+			t.Errorf("HasPrompt(%q) = false", k)
+		}
+	}
+	if HasPrompt("nope.nope") {
+		t.Error(`HasPrompt("nope.nope") = true`)
+	}
+}
+
+// TestValidationKeysMatchTable is the same guard for the validation table.
+func TestValidationKeysMatchTable(t *testing.T) {
+	got := ValidationKeys()
+	if len(got) != len(validationKeys) {
+		t.Fatalf("ValidationKeys() returned %d keys, want %d: %v", len(got), len(validationKeys), got)
+	}
+	for i := 1; i < len(got); i++ {
+		if got[i-1] >= got[i] {
+			t.Fatalf("ValidationKeys() not sorted at %d: %q >= %q", i, got[i-1], got[i])
+		}
+	}
+	for _, k := range validationKeys {
+		if !HasValidation(k) {
+			t.Errorf("HasValidation(%q) = false", k)
+		}
+	}
+	if HasValidation("nope.nope") {
+		t.Error(`HasValidation("nope.nope") = true`)
+	}
+}
+
+// TestPromptFallsBackToCatalog pins the fix for the outage: h.ask renders every
+// prompt through Prompt, and the PRD §4.12 ownership table pins three prompts
+// to the catalog. When Prompt consulted only the prompts table those three
+// rendered "" and Telegram rejected the send with
+// "Bad Request: message text is empty", killing the whole add-transaction flow.
+func TestPromptFallsBackToCatalog(t *testing.T) {
+	for _, key := range []string{"tx.prompt.date", "tx.prompt.amount", "tx.prompt.note"} {
+		if HasPrompt(key) {
+			t.Fatalf("%q now lives in the prompts table; move it out of this test's assumptions", key)
+		}
+		if !Has(key) {
+			t.Fatalf("%q is not a catalog key either", key)
+		}
+		for _, id := range IDs() {
+			if got := Prompt(id, key, nil); got == "" {
+				t.Errorf("Prompt(%q, %q) = \"\", want the catalog text", id, key)
+			}
+		}
+	}
+	// Every key a handler can ask for must render, for every persona.
+	for _, id := range IDs() {
+		for _, key := range promptKeys {
+			if got := Prompt(id, key, nil); strings.TrimSpace(got) == "" {
+				t.Errorf("Prompt(%q, %q) = %q", id, key, got)
+			}
+		}
+	}
+}
+
+// TestPromptAndValidationLeaveNoPlaceholder is the prompts/validation half of
+// TestRenderLeavesNoPlaceholder.
+func TestPromptAndValidationLeaveNoPlaceholder(t *testing.T) {
+	vars := map[string]string{}
+	for _, name := range Tokens() {
+		vars[name] = "X" + name
+	}
+	for _, id := range IDs() {
+		for _, key := range promptKeys {
+			out := Prompt(id, key, vars)
+			if strings.Contains(out, "{") || strings.Contains(out, "}") {
+				t.Errorf("Prompt(%q, %q) left a placeholder: %q", id, key, out)
+			}
+		}
+		for _, key := range validationKeys {
+			out := Validation(id, key, vars)
+			if strings.Contains(out, "{") || strings.Contains(out, "}") {
+				t.Errorf("Validation(%q, %q) left a placeholder: %q", id, key, out)
+			}
+		}
+	}
+}
+
+// TestPromptAndValidationDeclareEveryToken extends
+// TestEveryPlaceholderIsDeclared to the two tables that test does not read.
+func TestPromptAndValidationDeclareEveryToken(t *testing.T) {
+	declared := map[string]bool{}
+	for _, name := range Tokens() {
+		declared[name] = true
+	}
+	for tableName, table := range map[string]map[ID]map[string]string{"prompts": prompts, "validation": validation} {
+		for id, texts := range table {
+			for key, tpl := range texts {
+				for _, m := range tokenRe.FindAllString(tpl, -1) {
+					if token := m[1 : len(m)-1]; !declared[token] {
+						t.Errorf("%s persona %q key %q uses undeclared token %s", tableName, id, key, m)
+					}
+				}
+			}
+		}
+	}
+}
+
+// TestPromptAndValidationFallBackToNetral covers PRD §6 #12 for the two tables
+// TestRenderUnknownIDFallsBackToNetral does not read.
+func TestPromptAndValidationFallBackToNetral(t *testing.T) {
+	for _, bad := range []ID{"", "xxx", "Netral"} {
+		for _, key := range promptKeys {
+			want := Prompt(Netral, key, nil)
+			if got := Prompt(bad, key, nil); got != want {
+				t.Errorf("Prompt(%q, %q) = %q, want the netral text %q", bad, key, got, want)
+			}
+		}
+		for _, key := range validationKeys {
+			want := Validation(Netral, key, nil)
+			if got := Validation(bad, key, nil); got != want {
+				t.Errorf("Validation(%q, %q) = %q, want the netral text %q", bad, key, got, want)
+			}
+		}
+	}
+}

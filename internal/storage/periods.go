@@ -16,6 +16,13 @@ type PeriodRecord struct {
 	CreatedAt     string
 }
 
+// IsSeed reports whether rec is the period every user gets on registration.
+// Its EffectiveFrom is the seedPeriodEffectiveFrom sentinel, which sorts
+// before any real date so transactions dated before registration still
+// resolve (ResolveActive). It is not a schedule change the user ever made, so
+// callers that show period history must not render it as a date.
+func (rec PeriodRecord) IsSeed() bool { return rec.EffectiveFrom == seedPeriodEffectiveFrom }
+
 // CreatePeriod adds a schedule change effective from effectiveFrom. Older
 // dates keep resolving to the previous row because ResolveActive always picks
 // the greatest effective_from <= date (PRD §4.5).

@@ -629,3 +629,34 @@ func TestOpenRelativePath(t *testing.T) {
 		})
 	}
 }
+
+// A rename must survive the next call. EnsureUser used to re-run its category
+// seeding on EVERY call with INSERT OR IGNORE; the seed rows are keyed
+// UNIQUE (user_id, kind, name) and rename changes exactly that attribute, so
+// the old name came back as a second category on the very next message.
+func TestEnsureUserDoesNotResurrectRenamedSeedCategory(t *testing.T) {
+	db, ctx := newTestDB(t)
+	mustUser(t, db, ctx, 1)
+
+	id := categoryID(t, db, ctx, 1, KindExpense, "Makan")
+	if err := db.RenameCategory(ctx, 1, id, "Makan Besar"); err != nil {
+		t.Fatalf("RenameCategory: %v", err)
+	}
+
+	if _, err := db.EnsureUser(ctx, 1); err != nil {
+		t.Fatalf("EnsureUser kedua: %v", err)
+	}
+
+	exp, err := db.ListCategories(ctx, 1, KindExpense, false)
+	if err != nil {
+		t.Fatalf("ListCategories: %v", err)
+	}
+	if len(exp) != 6 {
+		t.Fatalf("kategori expense = %d, want 6", len(exp))
+	}
+	for _, c := range exp {
+		if c.Name == "Makan" {
+			t.Fatal("EnsureUser menghidupkan kembali kategori seed yang sudah diganti nama")
+		}
+	}
+}

@@ -74,6 +74,10 @@ const (
 
 	LabelItemPrefix    = "• "
 	LabelEffectiveFrom = "mulai"
+	// LabelEffectiveFromStart replaces the `mulai <tanggal>` clause of the
+	// /periode list for the initial period, whose effective_from is an
+	// internal sentinel rather than a schedule change (PRD §4.5).
+	LabelEffectiveFromStart = "sejak awal"
 	// LabelDayRange joins start_day and end_day in the /periode list
 	// (PRD §4.5: `21–20`), an en dash without surrounding spaces.
 	LabelDayRange = "–"

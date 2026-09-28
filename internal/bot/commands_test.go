@@ -115,18 +115,24 @@ func TestPeriodeListShowsEveryLayer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListPeriods: %v", err)
 	}
-	lines := make([]string, 0, len(recs))
-	for _, rec := range recs {
-		lines = append(lines, persona.LabelItemPrefix+rec.Name+" "+
-			itoa(int64(rec.StartDay))+persona.LabelDayRange+itoa(int64(rec.EndDay))+" "+
-			persona.LabelEffectiveFrom+" "+rec.EffectiveFrom)
+	if len(recs) != 2 {
+		t.Fatalf("periode = %d, want 2", len(recs))
 	}
-	want := strings.Join(lines, "\n")
+
+	// Newest first: the schedule change the user just made, then the period
+	// every user gets on registration. The second line is spelled out because
+	// the initial period's effective_from is an internal sentinel, never a
+	// date the user chose.
+	want := persona.LabelItemPrefix + "Gajian 25" + persona.LabelDayRange + "24 " +
+		persona.LabelEffectiveFrom + " " + testToday + "\n" +
+		persona.LabelItemPrefix + "Gaji 21" + persona.LabelDayRange + "20 " +
+		persona.LabelEffectiveFromStart
 	if got := sender.last(t); got != want {
 		t.Fatalf("/periode list =\n%s\nwant\n%s", got, want)
 	}
-	if !strings.Contains(want, "Gajian 25–24 mulai "+testToday) {
-		t.Fatalf("daftar periode tidak memuat lapisan baru: %q", want)
+	// Regression guard: the seed sentinel must never reach the user.
+	if got := sender.last(t); strings.Contains(got, "1970-01-01") {
+		t.Fatalf("/periode list membocorkan sentinel periode awal: %q", got)
 	}
 }
 
