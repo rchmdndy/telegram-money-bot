@@ -1,0 +1,5 @@
+/moneybot
+*.db
+*.db-shm
+*.db-wal
+.env
