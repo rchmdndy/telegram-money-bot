@@ -15,7 +15,10 @@ COPY . .
 # CGO_ENABLED=0 is safe: storage uses modernc.org/sqlite (pure Go).
 ARG TARGETOS=linux
 ARG TARGETARCH
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+# Only the compiler cache is mounted. Mounting /go/pkg/mod here would shadow
+# the modules installed by the layer above and force a re-download.
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags='-s -w' -o /out/moneybot ./cmd/bot
 
 # --- runtime ------------------------------------------------------------------

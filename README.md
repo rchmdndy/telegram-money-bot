@@ -46,7 +46,7 @@ o, 47k, makan, makan malam        → pengeluaran Rp 47.000, kategori Makan, cat
 i, 2.850.000, gaji, september     → pemasukan
 ```
 
-Formatnya ketat 4 field (`tipe, nominal, kategori, catatan`). Tidak ada parsing bahasa bebas/LLM — pesan yang tidak diawali `o,`/`i,` tidak pernah jadi transaksi. Kategori dengan typo (`makna`) diusulkan sebagai `Makan` di kartu konfirmasi, dan **selalu** lewat konfirmasi sebelum disimpan.
+Formatnya ketat (`tipe, nominal, kategori, catatan`); catatan boleh kosong sehingga 3 field pun sah (`o, 17k, makan`). Tidak ada parsing bahasa bebas/LLM — pesan yang tidak diawali `o,`/`i,` tidak pernah jadi transaksi. Kategori dengan typo (`makna`) diusulkan sebagai `Makan` di kartu konfirmasi, dan **selalu** lewat konfirmasi sebelum disimpan.
 
 ## Menjalankan
 
