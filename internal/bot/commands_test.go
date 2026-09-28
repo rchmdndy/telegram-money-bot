@@ -403,3 +403,67 @@ func TestQuickInputMissingAndExtraFields(t *testing.T) {
 		t.Fatalf("catatan ber-koma = %q", got)
 	}
 }
+
+// TestReminderOffMarksTheSettingsSummary drives /reminder off and /reminder on
+// and asserts what /settings shows in each state. The disabled branch appends
+// persona.LabelReminderOff to the summary, so a user who turned the reminder
+// off is never told a reminder is active (PRD §4.10).
+func TestReminderOffMarksTheSettingsSummary(t *testing.T) {
+	h, sender, db, ctx := newTestHandler(t)
+
+	// summaryText is the settings.summary line and the category list, spelled
+	// the way /settings must send them; the two states differ only by the off
+	// marker the handler appends before the category list.
+	summaryText := func() (string, string) {
+		t.Helper()
+		s, err := db.GetSettings(ctx, 1)
+		if err != nil {
+			t.Fatalf("GetSettings: %v", err)
+		}
+		active, _, err := h.activePeriod(ctx, 1)
+		if err != nil {
+			t.Fatalf("activePeriod: %v", err)
+		}
+		cats, err := h.categoryListText(ctx, 1, persona.Default())
+		if err != nil {
+			t.Fatalf("categoryListText: %v", err)
+		}
+		return say("settings.summary", map[string]string{
+			"period":  active.Name,
+			"time":    s.ReminderTime,
+			"persona": persona.Labels()[persona.Default()],
+		}), cats
+	}
+
+	mustSend(t, h, ctx, 1, "/reminder off")
+	if got, want := sender.last(t), say("reminder.off", nil); got != want {
+		t.Fatalf("/reminder off = %q, want %q", got, want)
+	}
+
+	// Disabled: the summary carries the off marker, and the stored time stays
+	// visible so turning it back on needs no memory of the old value.
+	summary, cats := summaryText()
+	mustSend(t, h, ctx, 1, "/settings")
+	want := summary + " " + persona.LabelReminderOff + "\n\n" + cats
+	if got := sender.last(t); got != want {
+		t.Fatalf("/settings saat reminder mati =\n%s\nwant\n%s", got, want)
+	}
+
+	mustSend(t, h, ctx, 1, "/reminder on")
+	if got, want := sender.last(t), say("reminder.on", nil); got != want {
+		t.Fatalf("/reminder on = %q, want %q", got, want)
+	}
+	s, err := db.GetSettings(ctx, 1)
+	if err != nil {
+		t.Fatalf("GetSettings: %v", err)
+	}
+	if !s.ReminderEnabled {
+		t.Fatal("reminder masih mati setelah /reminder on")
+	}
+
+	// Enabled again: the marker must be gone.
+	mustSend(t, h, ctx, 1, "/settings")
+	if got, want := sender.last(t), summary+"\n\n"+cats; got != want {
+		t.Fatalf("/settings saat reminder hidup =\n%s\nwant\n%s", got, want)
+	}
+}

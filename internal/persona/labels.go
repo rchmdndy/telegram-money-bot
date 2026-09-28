@@ -116,8 +116,10 @@ const (
 	// and the user has no earlier period to inherit one from.
 	LabelDefaultPeriodName = "Gaji"
 
-	// LabelReminderOff fills the {time} token of settings.summary while the
-	// reminder is disabled, so /settings never claims a reminder that is off.
+	// LabelReminderOff is appended to settings.summary while the reminder is
+	// disabled, so /settings never claims a reminder that is off. The stored
+	// time stays visible: turning the reminder back on must not require
+	// remembering what the time was.
 	LabelReminderOff = "off"
 
 	// LabelArrow separates the old and the new value in an edit card
